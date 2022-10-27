@@ -1,0 +1,13 @@
+name = "TubePressure"
+uuid = "885ea018-0d10-4cd5-abf0-8a5d418087dd"
+authors = ["Paulo José Saiz Jabardo"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
