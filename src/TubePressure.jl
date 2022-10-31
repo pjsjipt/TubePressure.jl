@@ -15,6 +15,8 @@ struct PressureLine{T}
     Vt::Vector{T}
     "Diaphragm deformation"
     σ::Vector{T}
+    "Polytropic exponent for volumes"
+    k::Vector{T}
     "Undisturbed density of air"
     ρ::T
     "Isentropic coefficient"
@@ -30,8 +32,10 @@ struct PressureLine{T}
     ϕ::Vector{Complex{T}}
 end
 
+function PressureLine(D::AbstractVector{T}, L::AbstractVector{T},
+                      V::AbstractVector{T}, 
 function PressureLine(D::T, L::T, V::T;
-                      σ=0.0, Ta=293.15, γ=1.4, Ra=287.05,
+                      σ=0.0, Ta=293.15, γ=1.4, k=1.4, Ra=287.05,
                       Pa=101325.0,Pr=0.707, mu=1.82e-5) where {T}
     ρ = Pa / (Ra * Ta)
     R = D/2
@@ -40,7 +44,7 @@ function PressureLine(D::T, L::T, V::T;
     α = zeros(Complex{T},1)
     n = zeros(Complex{T},1)
     ϕ = zeros(Complex{T},1)
-    return PressureLine{T}([R],[L],[V], [Vt], [σ], ρ, γ, a₀, Pr, mu, α, n, ϕ)
+    return PressureLine{T}([R],[L],[V], [Vt], [σ], [k], ρ, γ, a₀, Pr, mu, α, n, ϕ)
 end
 
 function pressurecorr(press::PressureLine{T}, f) where {T}
@@ -70,7 +74,7 @@ function pressurecorr(press::PressureLine{T}, f) where {T}
     for j in N:-1:1
         ϕL = ϕ[j]*L[j]
         term1 = cosh(ϕL)
-        term2 = V[j] / Vt[j] * (σ[j] + one(T)/press.γ) * n[j] * ϕ[j] *
+        term2 = V[j] / Vt[j] * (σ[j] + one(T)/press.k[j]) * n[j] * ϕ[j] * L[j] *
             sinh(ϕL)
         if j == N
             term3 = zero(T)*im
