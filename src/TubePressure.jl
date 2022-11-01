@@ -2,7 +2,7 @@ module TubePressure
 
 import SpecialFunctions: besselj0, besselj
 
-export PressureLine, presscorrect, phaseangle
+export PressureLine, correctcoef, phaseangle
 
 struct PressureLine{T}
     "Radius of each section"
@@ -59,7 +59,7 @@ function PressureLine(D, L, V, sigma=0.0, k=1.4;
     nk ∉ (1,nsec) && error("Number of tube sections inconsistent")
 
     if nD==1
-        R = fill(D[1], nsec)
+        R = fill(0.5*D[1], nsec)
     else
         R = 0.5 .* D
     end
@@ -97,7 +97,7 @@ end
     
     
 
-function presscorrect(press::PressureLine{T}, f) where {T}
+function correctcoef(press::PressureLine{T}, f) where {T}
 
     if f==0
         return one(T)+zero(T)*im
@@ -148,7 +148,7 @@ function presscorrect(press::PressureLine{T}, f) where {T}
             
 end
 
-(p::PressureLine)(f) = presscorrect(p, f)
+(p::PressureLine)(f) = correctcoef(p, f)
 
 function phaseangle(p)
     ϕ = angle.(p)
