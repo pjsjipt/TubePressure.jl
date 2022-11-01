@@ -4,7 +4,7 @@ using LinearAlgebra
 using FFTW
 import SpecialFunctions: besselj0, besselj
 
-export PressureLine, correctcoef, phaseangle, presscorrect
+export PressureLine, correctcoef, phaseangle, presscorrect, PressureLineSet
 
 struct PressureLine{T}
     "Radius of each section"
@@ -203,6 +203,30 @@ struct PressureLineSet{T}
     chans::Vector{Int}
 end
 
+function presscorrect(lines::PressureLineSet{T},fs,p::AbstractMatrix{T};dim=2) where {T}
+
+    N = size(p,dim)
+    f = rfftfreq(N,fs)
+    N₁ = length(f)
+    r = [line.(f) for line in lines.lines]
+    P = rfft(p, dim)
+    
+    for (i,ch) in enumerate(lines.chans)
+        rr  = r[ch]
+        if dim==1
+            for k in 1:N₁
+                P[k,i] /= rr[k]
+            end
+        elseif dim==2
+            for k in 1:N₁
+                P[i,k] /= rr[k]
+            end
+        end
+    end
+
+    return irfft(P, N, dim)
 end
 
+    
+end
 
