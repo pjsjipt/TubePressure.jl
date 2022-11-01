@@ -22,7 +22,12 @@ end
 
 # ╔═╡ 95d2c466-5910-11ed-2815-0d5b5cb4134b
 md"""
-# Pressure correction
+# Reproducing the figures of Bergh and Tijdeman (1965)
+
+The technical report "Theoretical and Experimental results for the dynamic response of pressure measuring systems" by H. Bergh and Tijdeman, NLR-TR F.238, 1965, implements pressure correction of pressure measurements along tubes. 
+
+This notebook reproduces some of the graphs and compares the results of the report to the calculations carried out by package `TubePressure`.
+
 """
 
 # ╔═╡ 98f0215d-0427-4bfb-a1e3-aadfe08cdccf
@@ -504,7 +509,7 @@ let fig=Figure(), press=press_fig20
 end
 
 # ╔═╡ Cell order:
-# ╠═95d2c466-5910-11ed-2815-0d5b5cb4134b
+# ╟─95d2c466-5910-11ed-2815-0d5b5cb4134b
 # ╠═5a31aa00-f652-40b7-989b-0238c8067b87
 # ╠═a1b1204a-e892-419d-80bf-901e086d3330
 # ╠═49a1a599-4f49-4b39-a5cc-3a8c1f35de53
