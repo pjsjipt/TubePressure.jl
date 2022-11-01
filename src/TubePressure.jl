@@ -2,7 +2,7 @@ module TubePressure
 
 import SpecialFunctions: besselj0, besselj
 
-export PressureLine, pressurecorr, phaseangle
+export PressureLine, presscorrect, phaseangle
 
 struct PressureLine{T}
     "Radius of each section"
@@ -17,6 +17,12 @@ struct PressureLine{T}
     σ::Vector{T}
     "Polytropic exponent for volumes"
     k::Vector{T}
+    "Fluid gas constant"
+    Ra::T
+    "Undisturbed temperature (K)"
+    Ta::T
+    "Undisturbed pressure (Pa)"
+    Pa
     "Undisturbed density of air"
     ρ::T
     "Isentropic coefficient"
@@ -25,30 +31,78 @@ struct PressureLine{T}
     a₀::T
     "Prandtl Number"
     Pr::T
-    "Viscosity"
+    "Viscosity (Pa.s)"
     μ::T
+    "Temporary storage"
     α::Vector{Complex{T}}
     n::Vector{Complex{T}}
     ϕ::Vector{Complex{T}}
 end
 
-function PressureLine(D::AbstractVector{T}, L::AbstractVector{T},
-                      V::AbstractVector{T}, 
-function PressureLine(D::T, L::T, V::T;
-                      σ=0.0, Ta=293.15, γ=1.4, k=1.4, Ra=287.05,
-                      Pa=101325.0,Pr=0.707, mu=1.82e-5) where {T}
+Base.Broadcast.broadcastable(p::PressureLine) = Ref(p)
+
+function PressureLine(D, L, V, sigma=0.0, k=1.4;
+                      gamma=1.4, Ta=288.15, Pa=101325.0,
+                      Ra=287.05, Pr=0.707, mu=1.82e-5)
+    nD = length(D)
+    nL = length(L)
+    nV = length(V)
+    nσ = length(sigma)
+    nk = length(k)
+    
+    nsec = max(nD, nL, nV, nσ, nk)
+
+    nD ∉ (1,nsec) && error("Number of tube sections inconsistent")
+    nL ∉ (1,nsec) && error("Number of tube sections inconsistent")
+    nV ∉ (1,nsec) && error("Number of tube sections inconsistent")
+    nσ ∉ (1,nsec) && error("Number of tube sections inconsistent")
+    nk ∉ (1,nsec) && error("Number of tube sections inconsistent")
+
+    if nD==1
+        R = fill(D[1], nsec)
+    else
+        R = 0.5 .* D
+    end
+
+    if nL==1
+        L = fill(L[1], nsec)
+    end
+
+    if nV==1
+        V = fill(V[1], nsec)
+    end
+
+    if nσ==1
+        sigma = fill(sigma[1], nsec)
+    end
+
+    if nk==1
+        k = fill(k[1], nsec)
+    end
+
+    α = zeros(nsec)
+    n = zeros(nsec)
+    ϕ = zeros(nsec)
+
     ρ = Pa / (Ra * Ta)
-    R = D/2
-    a₀ = sqrt(γ*Ra*Ta)
-    Vt = π*R^2 * L
-    α = zeros(Complex{T},1)
-    n = zeros(Complex{T},1)
-    ϕ = zeros(Complex{T},1)
-    return PressureLine{T}([R],[L],[V], [Vt], [σ], [k], ρ, γ, a₀, Pr, mu, α, n, ϕ)
+    a₀ = sqrt(gamma*Ra*Ta)
+    Vt = π .* R .^ 2 .* L
+    return PressureLine{Float64}(R, L, V, Vt, sigma, k,
+                                 Ra, Ta, Pa, ρ, gamma, a₀, Pr, mu,
+                                 α, n, ϕ)
 end
 
-function pressurecorr(press::PressureLine{T}, f) where {T}
+    
+    
+    
+    
 
+function presscorrect(press::PressureLine{T}, f) where {T}
+
+    if f==0
+        return one(T)+zero(T)*im
+    end
+    
     ω = 2π*f
     s = sqrt(press.Pr)
     N = length(press.R)
@@ -93,6 +147,8 @@ function pressurecorr(press::PressureLine{T}, f) where {T}
     return p
             
 end
+
+(p::PressureLine)(f) = presscorrect(p, f)
 
 function phaseangle(p)
     ϕ = angle.(p)
