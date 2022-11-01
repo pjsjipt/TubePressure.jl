@@ -1,8 +1,10 @@
 module TubePressure
 
+using LinearAlgebra
+using FFTW
 import SpecialFunctions: besselj0, besselj
 
-export PressureLine, correctcoef, phaseangle
+export PressureLine, correctcoef, phaseangle, presscorrect
 
 struct PressureLine{T}
     "Radius of each section"
@@ -41,9 +43,9 @@ end
 
 Base.Broadcast.broadcastable(p::PressureLine) = Ref(p)
 
-function PressureLine(D, L, V, sigma=0.0, k=1.4;
+function PressureLine(::Type{T}, D, L, V, sigma=0.0, k=1.4;
                       gamma=1.4, Ta=288.15, Pa=101325.0,
-                      Ra=287.05, Pr=0.707, mu=1.82e-5)
+                      Ra=287.05, Pr=0.707, mu=1.82e-5) where {T}
     nD = length(D)
     nL = length(L)
     nV = length(V)
@@ -59,17 +61,17 @@ function PressureLine(D, L, V, sigma=0.0, k=1.4;
     nk ∉ (1,nsec) && error("Number of tube sections inconsistent")
 
     if nD==1
-        R = fill(0.5*D[1], nsec)
+        R = fill(T(0.5*D[1]), nsec)
     else
-        R = 0.5 .* D
+        R = T.(D) ./ 2
     end
 
     if nL==1
-        L = fill(L[1], nsec)
+        L = fill(T(L[1]), nsec)
     end
-
+    
     if nV==1
-        V = fill(V[1], nsec)
+        V = fill(T(V[1]), nsec)
     end
 
     if nσ==1
@@ -80,22 +82,30 @@ function PressureLine(D, L, V, sigma=0.0, k=1.4;
         k = fill(k[1], nsec)
     end
 
-    α = zeros(nsec)
-    n = zeros(nsec)
-    ϕ = zeros(nsec)
+    α = zeros(T, nsec)
+    n = zeros(T, nsec)
+    ϕ = zeros(T, nsec)
 
-    ρ = Pa / (Ra * Ta)
-    a₀ = sqrt(gamma*Ra*Ta)
-    Vt = π .* R .^ 2 .* L
-    return PressureLine{Float64}(R, L, V, Vt, sigma, k,
-                                 Ra, Ta, Pa, ρ, gamma, a₀, Pr, mu,
-                                 α, n, ϕ)
+    ρ = T(Pa / (Ra * Ta))
+    a₀ = T(sqrt(gamma*Ra*Ta))
+    Vt = T.(π .* R .^ 2 .* L)
+    return PressureLine{T}(R, T.(L), T.(V), Vt, T.(sigma), T.(k),
+                                 T(Ra), T(Ta), T(Pa), T(ρ), T(gamma),
+                                 T(a₀), T(Pr), T(mu), α, n, ϕ)
 end
 
+
+
     
     
-    
-    
+PressureLine(D, L, V, sigma=0.0, k=1.4;
+             gamma=1.4, Ta=288.15, Pa=101325.0,
+             Ra=287.05, Pr=0.707, mu=1.82e-5)  = PressureLine(Float64, D, L, V,
+                                                              sigma, k; gamma=gamma,
+                                                              Ta=Ta,Pa=Pa,Ra=Ra,
+                                                              Pr=Pr,mu=mu)
+
+
 
 function correctcoef(press::PressureLine{T}, f) where {T}
 
@@ -164,6 +174,33 @@ function phaseangle(p)
         ϕ[i] += s
     end
     return ϕ
+end
+
+
+function presscorrect(line::PressureLine{T}, fs, p::AbstractVector{T}) where {T}
+    N = length(p)
+    f = rfftfreq(N, fs)
+    return irfft(rfft(p) ./ line.(f), N)
+end
+
+function presscorrect(line::PressureLine{T},fs,p::AbstractMatrix{T}; dim=2) where {T}
+    N = size(p,dim)
+    f = rfftfreq(N,fs)
+    r = line.(f)
+    P = rfft(p, dim)
+  
+    if dim==1
+        return irfft(Diagonal(1 ./ r) * P, N, 1)
+    elseif dim==2
+        return irfft(P * Diagonal(1 ./ r), N, 2)
+    end
+    
+end
+
+
+struct PressureLineSet{T}
+    lines::Vector{PressureLine{T}}
+    chans::Vector{Int}
 end
 
 end
