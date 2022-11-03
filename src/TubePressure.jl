@@ -58,8 +58,12 @@ technical report
 
  * Berg, H. and Tijdeman, H., "Theoretical and experimental results for the dynamic response of pressure measuring systems", National Aero- and Astronautical Research Institute, NLR-TR F.238, Amsterdam, January 1965.
 
+This function calculates the pressure correction for systems as shown in the schematic
+figure below. `P₀` is the input pressure, there are `n` sections where each section has
+a length of `Lᵢ`, diameter `Dᵢ` and volume `Vᵢ`. Each volume can expand becaus of a diaphgragm and this is taken into account by the parameter `σᵢ`.
+
 ```
-P₀ ----L₁,D₁-------|V₁|----L₂,D₂----|V₂|----L₃,D₃---|V₃|...----Lₙ,Dₙ----|Vₙ|
+P₀ ----L₁,D₁-------|V₁,P₁|----L₂,D₂----|V₂,P₂|----L₃,D₃---|V₃,P₃|...----Lₙ,Dₙ----|Vₙ,Pₙ|
 ```
 ## Arguments
 
